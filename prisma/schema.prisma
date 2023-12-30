@@ -1,0 +1,46 @@
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id    String @id @unique
+  email String @unique
+
+  stripeCustomerId       String?    @unique @map(name: "stripe_customer_id")
+  stripeSubscriptionId   String?    @unique @map(name: "stripe_subscription_id")
+  stripePriceId          String?    @map(name: "stripe_price_id")
+  stripeCurrentPeriodEnd DateTime?  @map(name: "stripe_current_period_end")
+  customers              Customer[]
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  name      String
+  User      User      @relation(fields: [userId], references: [id])
+  userId    String
+  imageUrl  String?
+  invoices  Invoice[]
+}
+
+model Invoice {
+  id         String        @id @default(uuid())
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  Customer   Customer      @relation(fields: [customerId], references: [id])
+  customerId String
+  amount     Int
+  status     InvoiceStatus
+}
+
+enum InvoiceStatus {
+  PAID
+  PENDING
+}

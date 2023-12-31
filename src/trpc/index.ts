@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { privateProcedure, publicProcedure, router } from "./trpc";
 import { db } from "@/db";
 import { z } from "zod";
+import { InvoiceStatus } from "@prisma/client";
 
 export const appRouter = router({
   authCallback: publicProcedure.query(async () => {
@@ -54,36 +55,72 @@ export const appRouter = router({
   }),
 
   addCustomer: privateProcedure
-  .input(
-    z.object({
-      name: z.string(),
-      imageUrl: z.string().optional(),
-    })
-  )
-  .mutation(async ({ ctx, input }) => {
-    const { userId } = ctx;
-    const { name, imageUrl } = input;
+    .input(
+      z.object({
+        name: z.string(),
+        imageUrl: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx;
+      const { name, imageUrl } = input;
 
-    const dbUser = await db.user.findUnique({
-      where: {
-        id: userId,
-      },
-    });
+      const dbUser = await db.user.findUnique({
+        where: {
+          id: userId,
+        },
+      });
 
-    if (!dbUser) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
+      if (!dbUser) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
 
-    const newCustomer = await db.customer.create({
-      data: {
-        name,
-        imageUrl,
-        userId: dbUser.id, 
-      },
-    });
+      const newCustomer = await db.customer.create({
+        data: {
+          name,
+          imageUrl,
+          userId: dbUser.id,
+        },
+      });
 
-    return newCustomer;
-  }),
+      return newCustomer;
+    }),
+
+  addInvoice: privateProcedure
+    .input(
+      z.object({
+        customerId: z.string(),
+        amount: z.number(),
+        status: z.nativeEnum(InvoiceStatus),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx;
+      const { customerId, amount, status } = input;
+
+      const dbUser = await db.user.findUnique({
+        where: {
+          id: userId,
+        },
+        include: {
+          customers: true,
+        },
+      });
+
+      if (!dbUser) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      const invoice = await db.invoice.create({
+        data: {
+          amount,
+          status,
+          customerId,
+        },
+      });
+
+      return invoice;
+    }),
 });
 
 export type AppRouter = typeof appRouter;

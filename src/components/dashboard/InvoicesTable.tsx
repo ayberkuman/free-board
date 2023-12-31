@@ -18,9 +18,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import * as React from "react";
-
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import tinydate from "tinydate";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -42,7 +42,10 @@ import {
 import { Invoice } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils";
 
-export type InvoiceColumn = Pick<Invoice, "id" | "amount" | "status">;
+export type InvoiceColumn = Pick<
+  Invoice,
+  "id" | "amount" | ("status" & { createdAt: string })
+>;
 
 export const columns: ColumnDef<InvoiceColumn>[] = [
   {
@@ -73,6 +76,15 @@ export const columns: ColumnDef<InvoiceColumn>[] = [
     cell: ({ row }) => (
       <div className="capitalize">{row.getValue("status")}</div>
     ),
+  },
+  {
+    accessorKey: "createdAt",
+    header: "Date",
+    cell: ({ row }) => {
+      const date = new Date(row.getValue("createdAt"));
+      const formattedDate = tinydate("{DD} {MMMM} {YYYY}");
+      return <div>{/* //TODO:date */}</div>;
+    },
   },
   {
     accessorKey: "id",

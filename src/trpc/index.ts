@@ -38,20 +38,37 @@ export const appRouter = router({
       where: {
         userId,
       },
+      include: {
+        invoices: {
+          take: 1,
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
     });
   }),
 
   getAllInvoices: privateProcedure.query(async ({ ctx }) => {
     const { userId } = ctx;
-    const invoices = await db.customer.findMany({
+    const invoices = await db.invoice.findMany({
       where: {
-        userId,
+        Customer: {
+          userId,
+        },
       },
       include: {
-        invoices: true,
+        Customer: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
-    return invoices.map((customer) => customer.invoices).flat();
+    return invoices.map((invoice) => ({
+      ...invoice,
+      customerName: invoice.Customer.name,
+    }));
   }),
 
   addCustomer: privateProcedure
@@ -120,6 +137,26 @@ export const appRouter = router({
       });
 
       return invoice;
+    }),
+  deleteCustomer: privateProcedure
+    .input(
+      z.object({
+        customerId: z.string(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { userId } = ctx;
+      const { customerId } = input;
+
+      if (!userId) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+      }
+
+      await db.customer.delete({
+        where: {
+          id: customerId,
+        },
+      });
     }),
 });
 

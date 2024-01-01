@@ -9,11 +9,12 @@ export default function Invoices() {
   const { data: invoicesData, isLoading } = trpc.getAllInvoices.useQuery();
 
   const formattedData = invoicesData?.map(
-    ({ id, amount, status, createdAt }) => ({
+    ({ id, amount, status, createdAt, customerName }) => ({
       id,
       amount,
       status,
       createdAt,
+      customerName,
     })
   );
 
@@ -21,7 +22,7 @@ export default function Invoices() {
     <div>
       <Link
         href="/dashboard/invoices/create"
-        className={buttonVariants({ variant: "secondary" })}
+        className={buttonVariants({ variant: "default" })}
       >
         <PlusCircledIcon className="mr-2 h-5 w-5" />
         Create Invoice

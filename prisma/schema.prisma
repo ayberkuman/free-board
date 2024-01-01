@@ -37,7 +37,7 @@ model Invoice {
   customerId String
   amount     Int
   status     InvoiceStatus
-  Customer   Customer      @relation(fields: [customerId], references: [id])
+  Customer   Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 enum InvoiceStatus {

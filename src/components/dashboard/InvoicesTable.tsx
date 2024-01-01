@@ -1,26 +1,7 @@
 "use client";
 
-import {
-  CaretSortIcon,
-  ChevronDownIcon,
-  DotsHorizontalIcon,
-} from "@radix-ui/react-icons";
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import tinydate from "tinydate";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -39,67 +20,96 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn, formatCurrency } from "@/lib/utils";
 import { Invoice } from "@prisma/client";
-import { formatCurrency } from "@/lib/utils";
+import {
+  CaretSortIcon,
+  ChevronDownIcon,
+  DotsHorizontalIcon,
+} from "@radix-ui/react-icons";
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  VisibilityState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import { useState } from "react";
+import tinydate from "tinydate";
+import { Badge } from "../ui/badge";
+import { CheckSquare, Clock } from "lucide-react";
 
 export type InvoiceColumn = Pick<
   Invoice,
-  "id" | "amount" | ("status" & { createdAt: string })
+  "id" | "amount" | ("status" & { createdAt: string; customerName: string })
 >;
 
 export const columns: ColumnDef<InvoiceColumn>[] = [
   {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("status")}</div>
+      <Badge
+        variant={row.getValue("status") === "PAID" ? "default" : "secondary"}
+        className={cn("pointer-events-none", {
+          "bg-green-100 text-green-800": row.getValue("status") === "PAID",
+          "": row.getValue("status") === "PENDING",
+        })}
+      >
+        {row.getValue("status") === "PAID" ? (
+          <CheckSquare className="w-4 h-4 mr-2" />
+        ) : (
+          <Clock className="w-4 h-4 mr-2" />
+        )}
+        {row.getValue("status")}
+      </Badge>
     ),
   },
   {
     accessorKey: "createdAt",
-    header: "Date",
-    cell: ({ row }) => {
-      const date = new Date(row.getValue("createdAt"));
-      const formattedDate = tinydate("{DD} {MMMM} {YYYY}");
-      return <div>{/* //TODO:date */}</div>;
-    },
-  },
-  {
-    accessorKey: "id",
     header: ({ column }) => {
       return (
         <Button
           variant="ghost"
+          className="p-0"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          id
+          Date
           <CaretSortIcon className="ml-2 h-4 w-4" />
         </Button>
       );
     },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
+    cell: ({ row }) => {
+      const date = new Date(row.getValue("createdAt"));
+      const stamp = tinydate("{DD} {MMMM} {YYYY}", {
+        MMMM: (d) => d.toLocaleString("default", { month: "short" }),
+        DD: (d) => d.getDate(),
+      });
+      return <Badge variant="secondary">{stamp(date)}</Badge>;
+    },
+  },
+  {
+    accessorKey: "customerName",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          className="p-0"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Customer
+          <CaretSortIcon className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => (
+      <div className="capitalize">{row.getValue("customerName")}</div>
+    ),
   },
   {
     accessorKey: "amount",
@@ -144,13 +154,9 @@ export const columns: ColumnDef<InvoiceColumn>[] = [
 ];
 
 export default function InvoicesTable({ data }: { data: InvoiceColumn[] }) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const table = useReactTable({
     data,
@@ -162,12 +168,10 @@ export default function InvoicesTable({ data }: { data: InvoiceColumn[] }) {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
-      rowSelection,
     },
   });
 
@@ -175,10 +179,12 @@ export default function InvoicesTable({ data }: { data: InvoiceColumn[] }) {
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Filter emails..."
-          value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
+          placeholder="Search by customer name"
+          value={
+            (table.getColumn("customerName")?.getFilterValue() as string) ?? ""
+          }
           onChange={(event) =>
-            table.getColumn("email")?.setFilterValue(event.target.value)
+            table.getColumn("customerName")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
@@ -260,10 +266,6 @@ export default function InvoicesTable({ data }: { data: InvoiceColumn[] }) {
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
         <div className="space-x-2">
           <Button
             variant="outline"

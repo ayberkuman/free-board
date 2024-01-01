@@ -8,7 +8,7 @@ const nextConfig = {
       `https://${process.env.VERCEL_URL}`,
     KINDE_POST_LOGIN_REDIRECT_URL:
       process.env.KINDE_POST_LOGIN_REDIRECT_URL ??
-      `https://${process.env.VERCEL_URL}/dashboard`,
+      `https://${process.env.VERCEL_URL}/auth-callback`,
   },
 };
 

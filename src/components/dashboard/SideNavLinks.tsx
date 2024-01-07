@@ -1,20 +1,20 @@
 "use client";
 
-import { FileTextIcon, HomeIcon, PersonIcon } from "@radix-ui/react-icons";
+import { cn } from "@/lib/utils";
+import { FileText, Home, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { buttonVariants } from "../ui/button";
-import { cn } from "@/lib/utils";
 
 // Map of links to display in the side navigation.
 // Depending on the size of the application, this would be stored in a database.
 const links = [
-  { name: "Home", href: "/dashboard", icon: HomeIcon },
-  { name: "Customers", href: "/dashboard/customers", icon: PersonIcon },
+  { name: "Home", href: "/dashboard", icon: Home },
+  { name: "Customers", href: "/dashboard/customers", icon: Users },
   {
     name: "Invoices",
     href: "/dashboard/invoices",
-    icon: FileTextIcon,
+    icon: FileText,
   },
 ];
 
@@ -38,7 +38,7 @@ export default function SideNavLinks() {
               }
             )}
           >
-            <LinkIcon className="w-6" />
+            <LinkIcon className="w-5" />
             <p className="hidden md:block">{link.name}</p>
           </Link>
         );

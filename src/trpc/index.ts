@@ -138,6 +138,7 @@ export const appRouter = router({
 
       return invoice;
     }),
+
   deleteCustomer: privateProcedure
     .input(
       z.object({
@@ -158,6 +159,112 @@ export const appRouter = router({
         },
       });
     }),
+
+  getDashboardCardStats: privateProcedure.query(async ({ ctx }) => {
+    const { userId } = ctx;
+
+    if (!userId) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    const totalRevenue = await db.invoice.aggregate({
+      where: {
+        Customer: {
+          userId,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const totalPendingAmount = await db.invoice.aggregate({
+      where: {
+        Customer: {
+          userId,
+        },
+        status: InvoiceStatus.PENDING,
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const totalCustomers = await db.customer.count({
+      where: {
+        userId,
+      },
+    });
+
+    const totalInvoices = await db.invoice.count({
+      where: {
+        Customer: {
+          userId,
+        },
+      },
+    });
+
+    return {
+      totalRevenue: totalRevenue._sum.amount || 0,
+      totalPendingAmount: totalPendingAmount._sum.amount || 0,
+      totalCustomers,
+      totalInvoices,
+    };
+  }),
+
+  getLatestInvoices: privateProcedure.query(async ({ ctx }) => {
+    const { userId } = ctx;
+
+    if (!userId) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    const invoices = await db.invoice.findMany({
+      where: {
+        Customer: {
+          userId,
+        },
+      },
+      include: {
+        Customer: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      take: 5,
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return invoices;
+  }),
+  
+  getMonthlyRevenue: privateProcedure.query(async ({ ctx }) => {
+    const { userId } = ctx;
+
+    if (!userId) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    const startDate = new Date();
+    startDate.setFullYear(startDate.getFullYear() - 1);
+
+    const result = await db.$queryRaw<{ month: string; revenue: number }[]>`
+      SELECT
+        DATE_FORMAT(createdAt, '%Y-%m') as month,
+        SUM(amount) as revenue
+      FROM Invoice
+      WHERE customerId IN (
+        SELECT id FROM Customer WHERE userId = ${userId}
+      ) AND createdAt >= ${startDate}
+      GROUP BY month
+      ORDER BY month;
+    `;
+
+    return result;
+  }),
 });
 
 export type AppRouter = typeof appRouter;

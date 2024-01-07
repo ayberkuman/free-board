@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -39,10 +38,10 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { CheckSquare, Clock } from "lucide-react";
 import { useState } from "react";
 import tinydate from "tinydate";
 import { Badge } from "../ui/badge";
-import { CheckSquare, Clock } from "lucide-react";
 
 export type InvoiceColumn = Pick<
   Invoice,
@@ -138,14 +137,8 @@ export const columns: ColumnDef<InvoiceColumn>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(payment.id)}
-            >
-              Copy payment ID
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem>View customer</DropdownMenuItem>
-            <DropdownMenuItem>View payment details</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -208,7 +201,11 @@ export default function InvoicesTable({ data }: { data: InvoiceColumn[] }) {
                       column.toggleVisibility(!!value)
                     }
                   >
-                    {column.id}
+                    {column.id === "createdAt"
+                      ? "Date"
+                      : column.id === "customerName"
+                      ? "Customer"
+                      : column.id}
                   </DropdownMenuCheckboxItem>
                 );
               })}
